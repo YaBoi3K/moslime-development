@@ -109,7 +109,8 @@ def sendCommand(tId, cmd):  # id: Tracker ID / cmd: Command to send
 
 
 def interp(val_in):  # mocopi sends quat as a signed int from -8192to8192 but quats are -1to1. this scales down the mocopi data
-    return (((val_in - -8192) * (1 - -1)) / (8192 - -8192)) + -1
+    #return (((val_in - -8192) * (1 - -1)) / (8192 - -8192)) + -1
+    return (((val_in + 8192) * 2 ) / 16384 ) - 1
 
 
 def hexToQuat(bytes):
@@ -175,10 +176,10 @@ def connectTracker(mac_addr, tId, retry):
         break
 
 
-def correctAccel(aX, aY, aZ):  # Used to correct accel data from the tracker (multiplying the tracker data by 0.12 makes it match the standard m/s^2)
-    aX2 = aX * 0.12
-    aY2 = aY * 0.12
-    aZ2 = aZ * 0.12
+def correctAccel(qW, qX, qY, qZ, aX, aY, aZ):  # Used to correct accel data from the tracker (multiplying the tracker data by 0.12 makes it match the standard m/s^2)
+    aX2 = ((aX * (2 * ((qW * qW) + (qX * qX)) -1))  + (aY * (2 * ((qX * qY) - (qW * qZ))))     + (aZ * (2 * ((qX * qZ) + (qW * qY)))))     * 0.12
+    aY2 = ((aX * (2 * ((qX * qY) + (qW * qZ))))     + (aY * (2 * ((qW * qW) + (qY * qY)) -1))  + (aZ * (2 * ((qY * qZ) - (qW * qX)))))     * 0.12
+    aZ2 = ((aX * (2 * ((qX * qZ) - (qW * qY))))     + (aY * (2 * ((qY * qZ) + (qW * qX))))     + (aZ * (2 * ((qW * qW) + (qZ * qZ)) -1)))  * 0.12
     return aX2, aY2, aZ2
 
 
@@ -207,8 +208,8 @@ class NotificationHandler(btle.DefaultDelegate):  # takes in tracker data, appli
                 az = hexToFloat(data[26:28])
                 ay = hexToFloat(data[28:30])
                 if self.ignorePackets == 0:
-                    # Once a number of packets have been discarded, we calculate the offset needed to make SlimeVR happy
-                    self.offset = (pw, -px, -py, -pz)
+                    # Once data has stabilized, set the self offset to +90 degrees on the X axis. Mocopi has the tracker object rotated -90 degrees on a flat surface when aligning the axes during calibration.
+                    self.offset = (0.7071067811865475, 0.7071067811865475, 0, 0)
                     self.ignorePackets += 1
                     self.lastCounter = int.from_bytes(data[1:8], "little")
                     return
@@ -217,9 +218,8 @@ class NotificationHandler(btle.DefaultDelegate):  # takes in tracker data, appli
                     self.lastCounter = int.from_bytes(data[1:8], "little")
                     return
                 qwc, qxc, qyc, qzc = multiply(pw, px, py, pz, *self.offset)  # apply quat offset/correction
-                axc, ayc, azc = correctAccel(ax, ay, az)  # apply accel offset
-                globals()['sensor' + str(self.trakID) + 'data'] = MocopiPacket(self.trakID, qwc, qxc, qyc, qzc, axc, ayc,
-                                                                               azc)  # store tracker data in its container
+                axc, ayc, azc = correctAccel(-qwc, qxc, qyc, qzc, ax, ay, az)  # apply accel offset
+                globals()['sensor' + str(self.trakID) + 'data'] = MocopiPacket(self.trakID, qwc, qxc, qyc, qzc, axc, ayc, azc)  # store tracker data in its container
                 if (int.from_bytes(data[1:8], "little") - self.lastCounter) != 78125:
                     print("Packet dropped on tracker " + str(self.trakID) + ", current packet num: " + str(
                         int.from_bytes(data[1:8], "little")))
