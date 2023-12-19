@@ -205,8 +205,8 @@ class NotificationHandler(btle.DefaultDelegate):  # takes in tracker data, appli
                 py = hexToQuat(data[12:14])
                 pz = hexToQuat(data[14:16])
                 ax = hexToFloat(data[24:26])
-                az = hexToFloat(data[26:28])
-                ay = hexToFloat(data[28:30])
+                ay = hexToFloat(data[26:28])
+                az = hexToFloat(data[28:30])
                 if self.ignorePackets == 0:
                     # Once data has stabilized, set the self offset to +90 degrees on the X axis. Mocopi has the tracker object rotated -90 degrees on a flat surface when aligning the axes during calibration.
                     self.offset = (0.7071067811865475, 0.7071067811865475, 0, 0)
@@ -218,8 +218,8 @@ class NotificationHandler(btle.DefaultDelegate):  # takes in tracker data, appli
                     self.lastCounter = int.from_bytes(data[1:8], "little")
                     return
                 qwc, qxc, qyc, qzc = multiply(pw, px, py, pz, *self.offset)  # apply quat offset/correction
-                axc, ayc, azc = correctAccel(-qwc, qxc, qyc, qzc, ax, ay, az)  # apply accel offset
-                globals()['sensor' + str(self.trakID) + 'data'] = MocopiPacket(self.trakID, qwc, qxc, qyc, qzc, axc, ayc, azc)  # store tracker data in its container
+                axc, ayc, azc = correctAccel(qwc, -qxc, -qyc, -qzc, ax, ay, az)  # apply accel offset
+                globals()['sensor' + str(self.trakID) + 'data'] = MocopiPacket(self.trakID, qwc, qxc, qyc, qzc, -axc, azc, ayc)  # store tracker data in its container
                 if (int.from_bytes(data[1:8], "little") - self.lastCounter) != 78125:
                     print("Packet dropped on tracker " + str(self.trakID) + ", current packet num: " + str(
                         int.from_bytes(data[1:8], "little")))
