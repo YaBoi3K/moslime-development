@@ -177,9 +177,9 @@ def connectTracker(mac_addr, tId, retry):
 
 
 def correctAccel(qW, qX, qY, qZ, aX, aY, aZ):  # Used to correct accel data from the tracker (multiplying the tracker data by 0.12 makes it match the standard m/s^2)
-    aX2 = ((aX * (2 * ((qW * qW) + (qX * qX)) -1))  + (aY * (2 * ((qX * qY) - (qW * qZ))))     + (aZ * (2 * ((qX * qZ) + (qW * qY)))))     * 0.12
-    aY2 = ((aX * (2 * ((qX * qY) + (qW * qZ))))     + (aY * (2 * ((qW * qW) + (qY * qY)) -1))  + (aZ * (2 * ((qY * qZ) - (qW * qX)))))     * 0.12
-    aZ2 = ((aX * (2 * ((qX * qZ) - (qW * qY))))     + (aY * (2 * ((qY * qZ) + (qW * qX))))     + (aZ * (2 * ((qW * qW) + (qZ * qZ)) -1)))  * 0.12
+    aX2 = ((aX * (2 * ((qW * qW) + (qX * qX)) -1))  + (aY * (2 * ((qX * qY) - (qW * qZ))))     + (aZ * (2 * ((qX * qZ) + (qW * qY)))))     *  -0.12
+    aZ2 = ((aX * (2 * ((qX * qY) + (qW * qZ))))     + (aY * (2 * ((qW * qW) + (qY * qY)) -1))  + (aZ * (2 * ((qY * qZ) - (qW * qX)))))     *   0.12
+    aY2 = ((aX * (2 * ((qX * qZ) - (qW * qY))))     + (aY * (2 * ((qY * qZ) + (qW * qX))))     + (aZ * (2 * ((qW * qW) + (qZ * qZ)) -1)))  *   0.12
     return aX2, aY2, aZ2
 
 
@@ -219,7 +219,7 @@ class NotificationHandler(btle.DefaultDelegate):  # takes in tracker data, appli
                     return
                 qwc, qxc, qyc, qzc = multiply(pw, px, py, pz, *self.offset)  # apply quat offset/correction
                 axc, ayc, azc = correctAccel(qwc, -qxc, -qyc, -qzc, ax, ay, az)  # apply accel offset
-                globals()['sensor' + str(self.trakID) + 'data'] = MocopiPacket(self.trakID, qwc, qxc, qyc, qzc, -axc, azc, ayc)  # store tracker data in its container
+                globals()['sensor' + str(self.trakID) + 'data'] = MocopiPacket(self.trakID, qwc, qxc, qyc, qzc, axc, ayc, azc)  # store tracker data in its container
                 if (int.from_bytes(data[1:8], "little") - self.lastCounter) != 78125:
                     print("Packet dropped on tracker " + str(self.trakID) + ", current packet num: " + str(
                         int.from_bytes(data[1:8], "little")))
