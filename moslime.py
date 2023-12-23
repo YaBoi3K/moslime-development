@@ -209,7 +209,7 @@ class NotificationHandler(btle.DefaultDelegate):  # takes in tracker data, appli
                 az = hexToFloat(data[28:30])
                 if self.ignorePackets == 0:
                     # Once data has stabilized, set the self offset to +90 degrees on the X axis. Mocopi has the tracker object rotated -90 degrees on a flat surface when aligning the axes during calibration.
-                    self.offset = (0.7071067811865475, 0.7071067811865475, 0, 0)
+                    self.offset = (-0.7071067811865475, -0.7071067811865475, 0, 0)
                     self.ignorePackets += 1
                     self.lastCounter = int.from_bytes(data[1:8], "little")
                     return
